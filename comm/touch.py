@@ -12,25 +12,21 @@ class TouchStream(sensors.Sensor):
         self.state = []
         self.ntouch = 0
 
-    def start(self):
-            ## to game server for commands - add/stop/...
-            port = '5557'
-            self.gameclient = cs.LPClient(server, port)
-            
-            ## to game publisher for data/state
-            self.dataqueue = Queue.LifoQueue()
-            port = '5558'
-            self.datasub = cs.ThreadedSubscriber(server, port, 
-                self.dataqueue, topic='data')
+        ## to game publisher for data/state
+        self.dataqueue = Queue.LifoQueue()
+        port = '5558'
+        self.datasub = cs.ThreadedSubscriber(server, port, 
+            self.dataqueue, topic='data')
 
-            self.statequeue = Queue.Queue()
-            port = '5558'
-            self.statesub = cs.ThreadedSubscriber(server, port, 
-                self.statequeue, purge=False, topic='state')
+        self.statequeue = Queue.Queue()
+        port = '5558'
+        self.statesub = cs.ThreadedSubscriber(server, port, 
+            self.statequeue, purge=False, topic='state')
+
+    def start(self): pass
 
     def prepare_nframes(self, session, length): pass
         ## make sure the queue is emptied
-
 
     def record_frame(self, session, frame):
         ## touch data: "data (touchId, x, y)"

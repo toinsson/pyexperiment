@@ -1,0 +1,78 @@
+#:kivy 1.0
+
+<MyGui>:
+
+    label_text : label_text
+
+    AnchorLayout:
+        anchor_x : 'right'
+        anchor_y : 'bottom'
+
+        Label:
+            id: label_text
+
+            bcolor: 1, 0, 0, 1
+            canvas.before:
+                Color:
+                    rgba: self.bcolor
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            size_hint: (0.1, 0.1)
+            text_size: self.size
+            halign: 'center'
+            valign: 'middle'
+
+            text_: 'init'
+
+            text: 'state: ' + self.text_
+
+# <CircleTarget>:
+#     canvas:
+#         Line:
+#             circle: (self.cx, self.cy, 50)
+#             width: 2
+
+#     collide_point: self.test()
+
+
+# <Target>:
+    # canvas:
+    # Line:
+    #     circle: (self.cx, self.cy, 50)
+    #     width: 2
+
+    # def __init__(self, x=0, y=0, r=50, **kwargs):
+    #     super(Target, self).__init__(**kwargs)
+    #     with self.canvas:
+    #         self.centered_circle = Line(circle = (x, y, 50), width = 2)
+
+        # self.cx = x
+        # self.cy = y
+        # self.r  = r
+
+    # def collide_point(self, x,y):
+    #     return np.linalg.norm([x-self.cx, y-self.cy]) < self.r
+
+# class CrossTarget(Widget):
+#     """Cross target of absolute position (x,y) and width w that pops in a 
+#     floatLayout. The collision function is redefined to trigger on the canvas
+#     and not on the total widget size.
+#     """
+#     def __init__(self, x=0, y=0, r=30, **kwargs):
+#         super(CrossTarget, self).__init__(**kwargs)
+
+#         with self.canvas:
+#             # Color(1,0,1)
+#             Line(points = [x-r,y,x+r,y], width = 2)
+#             Line(points = [x,y-r,x,y+r], width = 2)
+#             # Color(1,1,1)
+
+#         self.cx = x
+#         self.cy = y
+#         self.r  = r
+
+#     def collide_point(self, x,y):
+#         return np.linalg.norm([x-self.cx, y-self.cy]) < self.r
+

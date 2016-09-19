@@ -169,7 +169,7 @@ class ThreadedServer(threading.Thread):
 
         print 'exiting'
 
-
+import pickle
 class SimplePublisher(object):
     """
     """
@@ -182,7 +182,7 @@ class SimplePublisher(object):
         self.socket.bind("tcp://*:%s" % port)
 
     def send_topic(self, topic, data):
-        self.socket.send(topic+' '+data)
+        self.socket.send_multipart([topic, pickle.dumps(data)])
 
     def close(self):
         self.socket.close()
@@ -190,6 +190,51 @@ class SimplePublisher(object):
     def term(self):
         ## could be put in a enter/exit
         self.context.term()
+
+
+class StateSubscriber(object):
+
+    def __init__(self, port_sub):
+
+        print 'init StateSubscriber'
+
+        super(StateSubscriber, self).__init__()
+        self.context = zmq.Context()
+        # socket_pull = context.socket(zmq.PULL)
+        # socket_pull.connect ("tcp://localhost:%s" % port_push)
+        # print "Connected to server with port %s" % port_push
+        self.socket_sub = self.context.socket(zmq.SUB)
+        self.socket_sub.connect ("tcp://localhost:%s" % port_sub)
+        self.socket_sub.setsockopt(zmq.SUBSCRIBE, "changestate")
+        print "Connected to publisher with port %s" % port_sub
+        # Initialize poll set
+        self.poller = zmq.Poller()
+        # poller.register(socket_pull, zmq.POLLIN)
+        self.poller.register(self.socket_sub, zmq.POLLIN)
+        # Work on requests from both server and publisher
+        self.should_continue = True
+
+    def wait(self):
+        self.should_continue = True
+
+        while self.should_continue:
+
+            socks = dict(self.poller.poll())
+
+            # if socket_pull in socks and socks[socket_pull] == zmq.POLLIN:
+            #     message = socket_pull.recv()
+            #     print "Recieved control command: %s" % message
+            #     if message == "Exit":
+            #         print "Recieved exit command, client will stop recieving messages"
+            #         should_continue = False
+
+            if socks.get(self.socket_sub) == zmq.POLLIN:
+
+                [topic,msg] = self.socket_sub.recv_multipart()
+                msg2 = pickle.loads(msg)
+                print "Processing ... ", msg2
+                self.should_continue = False
+
 
 
 class ThreadedSubscriber(threading.Thread):
