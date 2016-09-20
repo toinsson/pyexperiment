@@ -3,9 +3,12 @@
 import experiment
 from comm import feedback
 
-exp = experiment.Experiment()
-
 fb = feedback.Feedback()
 
+exp = experiment.Experiment(feedback=fb)
+
+
 ## for repetitions in conditions:
-exp.repetition()
+for i in range(2):
+    print 'repetition {}'.format(i)
+    exp.repetition()

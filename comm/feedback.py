@@ -6,7 +6,7 @@ from .. import clientserver as cs
 class Feedback(object):
     def __init__(self, local=True):
 
-        game_cmd = ['python', '-m', 'pyexperiment.gui']
+        game_cmd = ['python', '-m', 'pyexperiment.gui', '--publish']
 
         if local:
             server = 'localhost'
@@ -23,13 +23,11 @@ class Feedback(object):
         ## to game server for commands - add/stop/...
         port = '5557'
         self.gameclient = cs.LPClient(server, port)
-
         self.statesub = cs.StateSubscriber('5558')
 
 
-
         ## could send a ping to gameclient...
-        time.sleep(5)
+        time.sleep(1)
 
 
     def send(self, message):
@@ -39,6 +37,7 @@ class Feedback(object):
     def wait_for_end(self):
 
         print 'start wait'
-        self.statesub.wait()
-
+        res = self.statesub.wait()
         print 'end wait'
+
+        return res

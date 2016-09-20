@@ -1,13 +1,18 @@
 
 class Experiment(object):
     """docstring for Experiment"""
-    def __init__(self):
+    def __init__(self, feedback=None):
         super(Experiment, self).__init__()
+        self.feedback = feedback
+
 
     def repetition(self):
 
         ## send start
-        self.feedbaack.send('add_target')
-        ## wait for 
+        self.feedback.send('add_target')
 
-        pass
+        ## wait for 
+        res = self.feedback.wait_for_end()
+        # pass
+
+        print 'received msg: ', res
