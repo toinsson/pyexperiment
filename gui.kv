@@ -2,6 +2,13 @@
 
 <MyGui>:
 
+    canvas:
+        Rectangle:
+            size: self.size
+            Color:
+                rgb: 1,1,1,1
+
+
     label_text : label_text
 
     AnchorLayout:
@@ -11,22 +18,25 @@
         Label:
             id: label_text
 
-            bcolor: 1, 0, 0, 1
-            canvas.before:
-                Color:
-                    rgba: self.bcolor
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
+            # bcolor: 0, 0, 0, 1
+            # canvas.before:
+            #     Color:
+            #         rgba: self.bcolor
+            #     Rectangle:
+            #         pos: self.pos
+            #         size: self.size
 
-            size_hint: (0.1, 0.1)
+            size_hint: (0.2, 0.1)
             text_size: self.size
             halign: 'center'
             valign: 'middle'
 
             text_: 'init'
 
-            text: 'state: ' + self.text_
+            color: 0,0,0,1
+            text: 'state: ' + root.state
+
+
 
 # <CircleTarget>:
 #     canvas:

@@ -145,12 +145,13 @@ class ThreadedServer(threading.Thread):
 
                     if 'args' in message.keys():
                         args = message['args']
-                        self.cmd_dict[msgType](*args)
+                        self.cmd_dict[msgType](**args)
                     else:
                         self.cmd_dict[msgType]()
                     print 'cmd done'
 
-                except KeyError:
+                except Exception as e:
+                    print e
                     msgType = 'error'
                     print "wrong format, msg['type'] not recognized"
                     pass
@@ -233,7 +234,7 @@ class StateSubscriber(object):
 
                 self.should_continue = False
 
-                return msg2
+        return msg2
 
 
 

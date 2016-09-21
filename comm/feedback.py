@@ -6,7 +6,7 @@ from .. import clientserver as cs
 class Feedback(object):
     def __init__(self, local=True):
 
-        game_cmd = ['python', '-m', 'pyexperiment.gui', '--publish']
+        game_cmd = ['python', '-m', 'pyexperiment.gui']
 
         if local:
             server = 'localhost'
@@ -30,8 +30,8 @@ class Feedback(object):
         time.sleep(1)
 
 
-    def send(self, message):
-        msg = {'msgType' : message}
+    def send(self, msg):
+        # msg = {'msgType' : message}
         self.gameclient.send_pyobj(msg)
 
     def wait_for_end(self):

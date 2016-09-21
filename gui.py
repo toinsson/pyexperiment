@@ -1,35 +1,34 @@
-import sys
-import argparse
+# import sys
+# import argparse
 
-if __name__ == '__main__':
-    argv = sys.argv[1:]
-    sys.argv = sys.argv[:1]
-    if "--" in argv:
-        index = argv.index("--")
-        kivy_args = argv[index+1:]
-        argv = argv[:index]
+# if __name__ == '__main__':
+#     argv = sys.argv[1:]
+#     sys.argv = sys.argv[:1]
+#     if "--" in argv:
+#         index = argv.index("--")
+#         kivy_args = argv[index+1:]
+#         argv = argv[:index]
 
-        sys.argv.extend(kivy_args)
+#         sys.argv.extend(kivy_args)
 
-    desc = ''.join(['Touch tracer app. Can send data via socket.'])
-    parser = argparse.ArgumentParser(description=desc)
+#     desc = ''.join(['Touch tracer app. Can send data via socket.'])
+#     parser = argparse.ArgumentParser(description=desc)
 
-    parser.add_argument('--publish', help='publish touch/cmd data',
-        required=False, action='store_true')
-    args = parser.parse_args(argv)
+#     parser.add_argument('--publish', help='publish touch/cmd data',
+#         required=False, action='store_true')
+#     args = parser.parse_args(argv)
 
 import time
 
 import kivy
 from kivy.lang import Builder
 from kivy.app import App
-from kivy.properties import NumericProperty
-from kivy.graphics import Line
+from kivy.properties import NumericProperty, StringProperty
+from kivy.graphics import Line, Color
 from kivy.core.window import Window
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 
-from numpy.random import random as rnd
 import numpy as np
 
 import transitions as tr
@@ -66,10 +65,9 @@ class CrossTarget(Widget):
         super(CrossTarget, self).__init__(**kwargs)
 
         with self.canvas:
-            # Color(1,0,1)
+            Color(1,0,1)
             Line(points = [cx-r,cy,cx+r,cy], width = 2)
             Line(points = [cx,cy-r,cx,cy+r], width = 2)
-            # Color(1,1,1)
 
         self.cx = cx
         self.cy = cy
@@ -80,11 +78,19 @@ class CrossTarget(Widget):
 
 
 
-class MyGui(FloatLayout):
-    def __init__(self, *args, **kwargs):
-        super(MyGui, self).__init__(*args, **kwargs)
-        self.touch = []
+class MyGui(FloatLayout, tr.Machine):
 
+    state = StringProperty('default')
+
+    def __init__(self, states, transitions, *args, **kwargs):
+        super(MyGui, self).__init__(*args, **kwargs)
+
+        tr.Machine.__init__(self, states=states, transitions=transitions, 
+            initial='init', auto_transitions=False, ignore_invalid_triggers=True)
+        self.add_ordered_transitions()
+
+
+        self.touch = []
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
         self._keyboard.bind(on_key_down=self._on_keyboard_down)
 
@@ -96,38 +102,36 @@ class MyGui(FloatLayout):
 
     def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if keycode[1] == 'spacebar':
+            print 'spacebar ', self.state
             self.on_spacebar()
 
-            if self.state not in ['init', 'recording']: self.transition()
-
-
-
-    def on_spacebar(self):
-        print 'spacebar'
-        # pass
 
     def on_touch_down(self, touch):
-        if self.state == 'recording':
-            self.touch.append(touch)
-            self.transition()
-
-
+        if self.state == 'recording': self.touch.append(touch)
+    def on_touch_move(self, touch):
+        if self.state == 'recording': self.touch.append(touch)
     def on_touch_up(self, touch):
+        if self.state == 'recording': self.touch.append(touch)
+
         for child in self.children:
             if isinstance(child, CrossTarget) or isinstance(child, Target):
                 self.remove_widget(child)
 
+        self.on_touch_up_()
 
-    def transition(self):
-        print 'transition'
-        self.next_state()
-        self.ids['label_text'].text_ = self.state
 
+    def clean(self):
+        self.touch = []
 
     def add_target(self):
         width, height = self.size
-        x, y, = rnd()*width, rnd()*height
+        x, y, = self.x*width, self.y*height
         self.add_widget(CrossTarget(x,y))
+
+
+    def save_target(self, *args, **kwargs):
+        self.x = kwargs['x']
+        self.y = kwargs['y']
 
 
 class GuiApp(App):
@@ -139,24 +143,36 @@ class GuiApp(App):
 
     def build(self):
 
-        ## GUI
-        myGui = MyGui()
-
-        ## STATE MACHINE
+        ## STATE MACHINE && GUI
         states = [
             'init',
             'ready',
-            tr.State('recording', on_enter=self.add_target),
-            tr.State('finish', on_enter=self.on_state_finish),
-            tr.State('send', on_exit=self.on_state_send),
-            # 'done'
+            tr.State('recording', on_enter='add_target'),
+            'finish',
+            tr.State('send', on_enter=self.send_feedback, on_exit='clean')
         ]
 
-        machine = tr.Machine(model=myGui, states=states, initial='init', auto_transitions=False)
-        machine.add_ordered_transitions()
-        machine.add_transition('on_spacebar', 'ready', 'recording')
+        # states_msg = {
+        #     'init':'',                                  ## wait for master message
+        #     'ready':'',                                 ## wait for keyboard space press
+        #     'recording':'press space to start',         ## wait for touch events
+        #     'finish':'touch',                           ## wait for keyboard space press
+        #     'send':'press space to stop',               ## send data and reboot
+        # }
+
+        transitions = [
+            {'trigger': 'receive_master_msg',   'source': 'init',       'dest': 'ready',
+            'before':'save_target'},
+            {'trigger': 'on_spacebar',          'source': 'ready',      'dest': 'recording'},
+            {'trigger': 'on_touch_up_',         'source': 'recording',  'dest': 'finish'},
+            {'trigger': 'on_spacebar',          'source': 'finish',     'dest': 'send'},
+            {'trigger': 'reboot',               'source': 'send',       'dest': 'init', },
+        ]
+
+        myGui = MyGui(states=states, transitions=transitions)
 
 
+        ## print state  machine
         if False:
             from transitions.extensions import GraphMachine
             gm = GraphMachine(model=myGui, states=states, initial='init', auto_transitions=False)
@@ -165,59 +181,32 @@ class GuiApp(App):
             gm.graph.draw('my_state_diagram.png', prog='dot')
 
 
-        self.machine = machine
-
         ## COMMUNICATION
-        if self.publish:
-            from . import clientserver as cs
-            self.pub = cs.SimplePublisher(port = "5558")
+        from . import clientserver as cs
+        self.pub = cs.SimplePublisher(port = "5558")
 
-            cmd_dict = {
-            'add_target' : self.transition,
-            }
+        cmd_dict = {
+        'add_target' : myGui.receive_master_msg,
+        }
 
-            self.cmdServer = cs.ThreadedServer(cmd_dict, port='5557')
+        self.cmdServer = cs.ThreadedServer(cmd_dict, port='5557')
 
         return myGui
 
 
-    def on_state_finish(self, *args):
-        self.to_send = self.root.touch[:]
-        self.root.touch = []
-
-        self.transition()
-
-
-    def on_state_send(self):
-        for touch in self.to_send: print touch.time_start, touch.time_end
-
-        print 'send: ', self.to_send
-        if self.publish:
-            self.pub.send_topic('changestate', self.to_send)
-
-    def transition(self):
-        state = str(self.machine.model.state)
-        self.machine.model.next_state()
-        self.root.ids['label_text'].text_ = self.machine.model.state
-        print state, ' -> ', self.machine.model.state
-
-
-    def add_target(self):
-        # self.transition()
-        self.machine.model.add_target()
+    def send_feedback(self):
+        self.pub.send_topic('changestate', self.root.touch)
+        self.root.reboot()
 
 
     def on_stop(self):
-        if self.publish:
+        if self.cmdServer.is_alive() and not self.cmdServer.request_alive:
+            self.cmdServer.stop()
 
-            if self.cmdServer.is_alive() and not self.cmdServer.request_alive:
-                self.cmdServer.stop()
-
-            self.pub.close()
+        self.pub.close()
 
         return True
 
 
-
 if __name__ == '__main__':
-    GuiApp(publish=args.publish).run()
+    GuiApp().run()
